@@ -324,7 +324,11 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
     // ------------------------------------------------------------------------------------------------------------------
     if (record->event.pressed) {
         if (is_mod_tap_key) {
-            pending_taps[slot].tapping_pending_token = defer_exec(TAPPING_TERM, delayed_key_tap_callback, (void*)(uintptr_t)pending_taps[slot].slot_id);
+            if (is_key_repeat) {
+                pending_taps[slot].tapping_pending_token = defer_exec(TAPPING_TERM * 3, delayed_key_tap_callback, (void*)(uintptr_t)pending_taps[slot].slot_id);
+            } else {
+                pending_taps[slot].tapping_pending_token = defer_exec(TAPPING_TERM, delayed_key_tap_callback, (void*)(uintptr_t)pending_taps[slot].slot_id);
+            }
         }
         return false;
     } else {
