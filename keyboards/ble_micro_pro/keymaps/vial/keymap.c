@@ -16,10 +16,9 @@ const uint16_t PROGMEM encoder_map[1][NUM_ENCODERS][NUM_DIRECTIONS] = {{{KC_MS_U
 static uint16_t keycode_last_tap = 0;
 static uint16_t time_last_tap    = 0;
 
-#define ROLLING_TO_MOD_TIMEOUT 25 // wait time for pending rolling to mod.(ms)
+#define ROLLING_TO_MOD_TIMEOUT 40 // wait time for pending rolling to mod.(ms)
+#define ROLLING_TO_MOD_START  120 // time for activate checking rolling to mod.(ms)
 #define PENDING_TAP_CAPACITY 4
-
-static bool reversed_keymap = false;
 
 static uint8_t pressed_key_count = 0;
 
@@ -270,7 +269,9 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
     uint8_t row = record->event.key.row;
     uint8_t col = record->event.key.col;
 
-    if (pressed_key_count == 0) print("---\n");
+#ifdef KEYMAP_INTROSPECTION_ENABLE // ----------------//
+    if (pressed_key_count == 0) print("---\n");       //
+#endif // KEYMAP_INTROSPECTION_ENABLE ----------------//
     if      (record->event.pressed) pressed_key_count++;
     else if (pressed_key_count > 0) pressed_key_count--;
 
@@ -292,6 +293,7 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
 #endif // KEYMAP_INTROSPECTION_ENABLE -----------------//
         }
     }
+    keycode_last_tap = 0;
 
     uint8_t slot = 0;
     bool existYounger = false;
@@ -312,14 +314,6 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
 #endif // KEYMAP_INTROSPECTION_ENABLE ------------------------------------------//
         return true;
     }
-    if (!record->event.pressed && reversed_keymap) { // 押下時のレイヤーに基づくキーコードを再現
-        keycode = pending_taps[slot].keycode;
-        record->keycode = keycode;
-        is_mod_tap_key = (tap_hold_get_tap_keycode(keycode) != keycode);
-#ifdef KEYMAP_INTROSPECTION_ENABLE // ---------------------------------------//
-        xprintf("    reproduced keycode = %s\n", get_keycode_str(keycode));  //
-#endif // KEYMAP_INTROSPECTION_ENABLE ---------------------------------------//
-    }
 
     // ------------------------------------------------------------------------------------------------------------------
     if (record->event.pressed) {
@@ -336,20 +330,22 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
 
         if (!pending_taps[slot].is_pending) { // 保留解決済キーのリリース時
             if (is_mod_tap_key) { // tapping term以上押されたmod-tapキーが離された時
-                for (i = 0; i < PENDING_TAP_CAPACITY; i++) {
-                    if (i == slot || !pending_taps[i].is_active) continue;
-                    if (pending_taps[i].tapping_pending_token != 0                           // mod-tapキーで、
-                     && pending_taps[i].pressed_time > pending_taps[slot].pressed_time       // このキーより後に押され、
-                     && timer_elapsed(pending_taps[i].pressed_time) > ROLLING_TO_MOD_TIMEOUT // ROLLING_TO_MOD_TIMEOUT以上共存したキーはtap扱いとする
-                        ) {
-                        cancel_deferred_exec(pending_taps[i].tapping_pending_token);
-                        pending_taps[i].tapping_pending_token = 0;
+                if (pressed_key_count < 2) {
+                    for (i = 0; i < PENDING_TAP_CAPACITY; i++) {
+                        if (i == slot || !pending_taps[i].is_active) continue;
+                        if (pending_taps[i].tapping_pending_token != 0                           // mod-tapキーで、
+                         && pending_taps[i].pressed_time > pending_taps[slot].pressed_time       // このキーより後に押され、
+                         && timer_elapsed(pending_taps[i].pressed_time) > ROLLING_TO_MOD_TIMEOUT // ROLLING_TO_MOD_TIMEOUT以上共存したキーはtap扱いとする
+                            ) {
+                            cancel_deferred_exec(pending_taps[i].tapping_pending_token);
+                            pending_taps[i].tapping_pending_token = 0;
 
-                        uint16_t k  = to_current_layer_keycode_on_slot(i);
-                        uint16_t k2 = tap_hold_get_tap_keycode(k);
-                        register_code_print(k2);
-                        pending_taps[i].is_pending = false;
-                        pending_taps[i].keycode_registerd = k2;
+                            uint16_t k  = to_current_layer_keycode_on_slot(i);
+                            uint16_t k2 = tap_hold_get_tap_keycode(k);
+                            register_code_print(k2);
+                            pending_taps[i].is_pending = false;
+                            pending_taps[i].keycode_registerd = k2;
+                        }
                     }
                 }
 
@@ -375,7 +371,7 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
                 cancel_deferred_exec(pending_taps[slot].tapping_pending_token);
                 pending_taps[slot].tapping_pending_token = 0;
 
-                if (existYounger && timer_elapsed(pending_taps[slot].pressed_time) > ROLLING_TO_MOD_TIMEOUT) {
+                if (existYounger && timer_elapsed(pending_taps[slot].pressed_time) > ROLLING_TO_MOD_START) {
 #ifdef KEYMAP_INTROSPECTION_ENABLE // ----------------------------------------//
                     print("     existYounger, start rolling pending.\n");     //
 #endif // KEYMAP_INTROSPECTION_ENABLE ----------------------------------------//
