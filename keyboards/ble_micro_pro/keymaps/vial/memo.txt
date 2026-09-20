@@ -1,1 +1,68 @@
-make ble_micro_pro:vial:uf2
+
+# 1. ファームウェアの更新
+
+## uf2の生成
+QMK Msysにて、以下のコマンドを実行すると、.build/ に"ble_micro_pro_vial.uf2"ができる。
+$ cd qmk_firmware_bmp_vial
+$ make ble_micro_pro:vial:uf2
+
+なお、uf2ファイルはGherkinもDillyも共通
+
+## uf2の書き込み
+bmp boostをUSB接続し、リセットするか、あるいはTera Term等で接続し"dfu"を送信すると、
+ブートローダが起動し、マスストレージデバイスとして認識される。
+※ 中にINFO_UF2.TXTがあることを確認する。このファイルがない場合、ブートローダの起動に失敗しているので再起動する。
+
+アップデートしたいuf2ファイルをコピーするとアップデートが始まる。アップデート中はケーブルを外さない。
+※ コピーした時に、勝手にストレージのエクスプローラが消えてくれることもあるのだが、消えないこともある。
+   その場合も、10秒程度待ってからなら外しても大丈夫みたい。
+
+再度USB接続し、キー配置がリセットされていることを確認できれば、ファームウェアの書き換えは完了している。
+
+## 参考
+https://sekigon-gonnoc.github.io/BLE-Micro-Pro/#/build_firmware
+
+
+---
+# 2. その他のファームウェア、設定の更新など
+上記のほか、bmp boostでは以下の設定が必要。
+1. ブートローダのファームウェア
+2. アプリケーションのファームウェア
+3. キーボードの設定
+
+もしかしたら、「2. アプリケーションのファームウェア」というのが、uf2なのかもしれないが、ちょっとよくわからない。
+
+## 手順
+Google Chromeから[BLE Micro Pro Web Configurator](https://sekigon-gonnoc.github.io/BLE-Micro-Pro-WebConfigurator/)にアクセスすると
+上記の更新ができる。
+
+1、2については、選択肢のうち最新を選んでアップデートすればよい。
+
+3については、「upload your own」を選んで、*.bin※を選択する。
+※ 2つのJsonファイル(*.json, *_config.json)を用いて、https://sekigon-gonnoc.github.io/bmp-vial-config-generator/にて作成したもの。
+
+GherkinやDillyでは以下の通り設定した。
+
+[ ]Use with LPME-IO
+[ ]Is Slave
+[x]Is Left
+Debounce : 1
+AutoSleep : 60 min.
+Connection interval (Peripheral) : 10 ms
+
+## MEMO
+bmp boostをUSB接続したときに見えるファイルは以下の通り。
+
+* CONFIG.BIN   : キーボードの設定やVialの設定・バックアップ用
+* DEFAULT.BIN  : EEPROMのデフォルト状態(デフォルトキーマップなど)の設定・バックアップ用
+* EEPROM.BIN   : 現在のEEPROM状態のバックアップ用
+* VERSION.TXT  : 現在のファームウェアのバージョン
+* VIALJSON.BIN : vial.jsonを7zで圧縮したバイナリのバックアップ用
+
+恐らくだが、2.3の操作は、上記の上から3つのbinファイルを更新する作業だと思われる。
+また、*.binファイルを直接マスストレージにコピーしてもよいらしい。
+ただ、webページを介して書き込むと、AutoSleep等の時間をちょっとカスタマイズしたうえで書き込めるのだと思われる…。
+
+
+## 参考
+https://sekigon-gonnoc.github.io/BLE-Micro-Pro/#/getting_started?id=%e8%87%aa%e4%bd%9c%e3%82%ad%e3%83%bc%e3%83%9c%e3%83%bc%e3%83%89%e3%82%ad%e3%83%83%e3%83%88%e3%82%92%e7%84%a1%e7%b7%9a%e5%8c%96%e3%81%99%e3%82%8b
