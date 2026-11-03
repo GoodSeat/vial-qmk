@@ -254,10 +254,15 @@ uint16_t get_event_keycode(keyevent_t event, bool update_layer_cache) {
 /* Get keycode, and then process pre tapping functionality */
 bool pre_process_record_quantum(keyrecord_t *record) {
     uint16_t keycode = get_record_keycode(record, true);
-    return pre_process_record_kb(keycode, record) &&
+//    return pre_process_record_kb(keycode, record) &&
+//#ifdef COMBO_ENABLE
+//           process_combo(keycode, record) &&
+//#endif
+    return
 #ifdef COMBO_ENABLE
            process_combo(keycode, record) &&
 #endif
+           pre_process_record_kb(keycode, record) &&
            true;
 }
 
