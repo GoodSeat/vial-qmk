@@ -32,3 +32,5 @@ FAUXCLICKY_ENABLE = no      # Use buzzer to emulate clicky switches
 
 ENCODER_ENABLE = yes
 ENCODER_MAP_ENABLE = yes
+#OLED_ENABLE = yes
+#OLED_DRIVER = SSD1306

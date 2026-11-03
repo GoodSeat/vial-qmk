@@ -86,6 +86,12 @@
             "twinkle": true
         }
     },
+    "features": {
+        "oled": true
+    },
+    "oled": {
+        "driver": "SSD1306"
+    },
     "ws2812": {
         "pin": 255
     }
