@@ -3,12 +3,113 @@
 #include QMK_KEYBOARD_H
 #include "vial.h"
 
+#define KEYMAP_INTROSPECTION_ENABLE
+
 const uint16_t PROGMEM keymaps[1][MATRIX_ROWS][MATRIX_COLS] = {{{
     KC_A, KC_B, KC_C, KC_D, KC_E, KC_F, KC_G, KC_H, KC_I, KC_J, KC_K, KC_L, KC_M, KC_N, KC_O, KC_P, KC_R, KC_S, KC_T
 }}};
 
 const uint16_t PROGMEM encoder_map[1][NUM_ENCODERS][NUM_DIRECTIONS] = {{{KC_MS_U, KC_MS_D}}};
 
+#ifdef KEYMAP_INTROSPECTION_ENABLE
+const char* get_keycode_str(uint16_t keycode) {
+    static char keycode_str[16];
+
+    switch (keycode) {
+    case KC_NO:          sprintf(keycode_str, "KC_NO"); break;
+    case KC_TRANSPARENT: sprintf(keycode_str, "KC_TRNS"); break;
+
+    case KC_A: sprintf(keycode_str, "KC_A"); break;
+    case KC_B: sprintf(keycode_str, "KC_B"); break;
+    case KC_C: sprintf(keycode_str, "KC_C"); break;
+    case KC_D: sprintf(keycode_str, "KC_D"); break;
+    case KC_E: sprintf(keycode_str, "KC_E"); break;
+    case KC_F: sprintf(keycode_str, "KC_F"); break;
+    case KC_G: sprintf(keycode_str, "KC_G"); break;
+    case KC_H: sprintf(keycode_str, "KC_H"); break;
+    case KC_I: sprintf(keycode_str, "KC_I"); break;
+    case KC_J: sprintf(keycode_str, "KC_J"); break;
+    case KC_K: sprintf(keycode_str, "KC_K"); break;
+    case KC_L: sprintf(keycode_str, "KC_L"); break;
+    case KC_M: sprintf(keycode_str, "KC_M"); break;
+    case KC_N: sprintf(keycode_str, "KC_N"); break;
+    case KC_O: sprintf(keycode_str, "KC_O"); break;
+    case KC_P: sprintf(keycode_str, "KC_P"); break;
+    case KC_Q: sprintf(keycode_str, "KC_Q"); break;
+    case KC_R: sprintf(keycode_str, "KC_R"); break;
+    case KC_S: sprintf(keycode_str, "KC_S"); break;
+    case KC_T: sprintf(keycode_str, "KC_T"); break;
+    case KC_U: sprintf(keycode_str, "KC_U"); break;
+    case KC_V: sprintf(keycode_str, "KC_V"); break;
+    case KC_W: sprintf(keycode_str, "KC_W"); break;
+    case KC_X: sprintf(keycode_str, "KC_X"); break;
+    case KC_Y: sprintf(keycode_str, "KC_Y"); break;
+    case KC_Z: sprintf(keycode_str, "KC_Z"); break;
+    case KC_1: sprintf(keycode_str, "KC_1"); break;
+    case KC_2: sprintf(keycode_str, "KC_2"); break;
+    case KC_3: sprintf(keycode_str, "KC_3"); break;
+    case KC_4: sprintf(keycode_str, "KC_4"); break;
+    case KC_5: sprintf(keycode_str, "KC_5"); break;
+    case KC_6: sprintf(keycode_str, "KC_6"); break;
+    case KC_7: sprintf(keycode_str, "KC_7"); break;
+    case KC_8: sprintf(keycode_str, "KC_8"); break;
+    case KC_9: sprintf(keycode_str, "KC_9"); break;
+    case KC_0: sprintf(keycode_str, "KC_0"); break;
+
+    case KC_ENTER:          sprintf(keycode_str, "KC_ENTER"); break;
+    case KC_ESCAPE:         sprintf(keycode_str, "KC_ESC"); break;
+    case KC_BACKSPACE:      sprintf(keycode_str, "KC_BCSP"); break;
+    case KC_TAB:            sprintf(keycode_str, "KC_TAB"); break;
+    case KC_SPACE:          sprintf(keycode_str, "KC_SPACE"); break;
+    case KC_MINUS:          sprintf(keycode_str, "KC_MINUS"); break;
+    case KC_EQUAL:          sprintf(keycode_str, "KC_EQUAL"); break;
+    case KC_LEFT_BRACKET:   sprintf(keycode_str, "KC_LEFT_BRACKET"); break;
+    case KC_RIGHT_BRACKET:  sprintf(keycode_str, "KC_RIGHT_BRACKET"); break;
+    case KC_BACKSLASH:      sprintf(keycode_str, "KC_BACKSLASH"); break;
+    case KC_NONUS_HASH:     sprintf(keycode_str, "KC_NONUS_HASH"); break;
+    case KC_SEMICOLON:      sprintf(keycode_str, "KC_SEMICOLON"); break;
+    case KC_QUOTE:          sprintf(keycode_str, "KC_QUOTE"); break;
+    case KC_GRAVE:          sprintf(keycode_str, "KC_GRAVE"); break;
+    case KC_COMMA:          sprintf(keycode_str, "KC_COMMA"); break;
+    case KC_DOT:            sprintf(keycode_str, "KC_DOT"); break;
+    case KC_SLASH:          sprintf(keycode_str, "KC_SLASH"); break;
+    case KC_F1:             sprintf(keycode_str, "KC_F1"); break;
+    case KC_F2:             sprintf(keycode_str, "KC_F2"); break;
+    case KC_F3:             sprintf(keycode_str, "KC_F3"); break;
+    case KC_F4:             sprintf(keycode_str, "KC_F4"); break;
+    case KC_F5:             sprintf(keycode_str, "KC_F5"); break;
+    case KC_F6:             sprintf(keycode_str, "KC_F6"); break;
+    case KC_F7:             sprintf(keycode_str, "KC_F7"); break;
+    case KC_F8:             sprintf(keycode_str, "KC_F8"); break;
+    case KC_F9:             sprintf(keycode_str, "KC_F9"); break;
+    case KC_F10:            sprintf(keycode_str, "KC_F10"); break;
+    case KC_F11:            sprintf(keycode_str, "KC_F11"); break;
+    case KC_F12:            sprintf(keycode_str, "KC_F12"); break;
+    case KC_HOME:           sprintf(keycode_str, "KC_HOME"); break;
+    case KC_END:            sprintf(keycode_str, "KC_END"); break;
+    case KC_DELETE:         sprintf(keycode_str, "KC_DELT"); break;
+    case KC_PAGE_UP:        sprintf(keycode_str, "KC_PGUP"); break;
+    case KC_PAGE_DOWN:      sprintf(keycode_str, "KC_PGDN"); break;
+    case KC_RIGHT:          sprintf(keycode_str, "KC_RIGHT"); break;
+    case KC_LEFT:           sprintf(keycode_str, "KC_LEFT"); break;
+    case KC_DOWN:           sprintf(keycode_str, "KC_DOWN"); break;
+    case KC_UP:             sprintf(keycode_str, "KC_UP"); break;
+
+    case KC_LEFT_CTRL:      sprintf(keycode_str, "KC_LEFT_CTRL"); break;
+    case KC_LEFT_SHIFT:     sprintf(keycode_str, "KC_LEFT_SHIFT"); break;
+    case KC_LEFT_ALT:       sprintf(keycode_str, "KC_LEFT_ALT"); break;
+    case KC_LEFT_GUI:       sprintf(keycode_str, "KC_LEFT_GUI"); break;
+    case KC_RIGHT_CTRL:     sprintf(keycode_str, "KC_RIGHT_CTRL"); break;
+    case KC_RIGHT_SHIFT:    sprintf(keycode_str, "KC_RIGHT_SHIFT"); break;
+    case KC_RIGHT_ALT:      sprintf(keycode_str, "KC_RIGHT_ALT"); break;
+    case KC_RIGHT_GUI:      sprintf(keycode_str, "KC_RIGHT_GUI"); break;
+
+    default: sprintf(keycode_str, "KC_%u", keycode); break;
+    }
+
+    return keycode_str;
+}
+#endif // KEYMAP_INTROSPECTION_ENABLE
 
 // =================================================================================
 // rolling press to hold
