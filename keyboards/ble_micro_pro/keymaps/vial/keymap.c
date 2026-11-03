@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
 #include QMK_KEYBOARD_H
+#include "vial.h"
 
 const uint16_t PROGMEM keymaps[1][MATRIX_ROWS][MATRIX_COLS] = {{{
     KC_A, KC_B, KC_C, KC_D, KC_E, KC_F, KC_G, KC_H, KC_I, KC_J, KC_K, KC_L, KC_M, KC_N, KC_O, KC_P, KC_R, KC_S, KC_T
@@ -201,6 +202,39 @@ void unregister_keycode_of_hold_on_slot(uint8_t slot) {
 }
 
 // =================================================================================
+// Vialで設定されているコンボテーブルから該当する組み合わせを動的に検索する
+uint16_t get_combo_for_keys(uint16_t k1, uint16_t k2) {
+    uint16_t tap1 = tap_hold_get_tap_keycode(k1);
+    uint16_t tap2 = tap_hold_get_tap_keycode(k2);
+
+    // Vialに登録されているコンボを全件チェック
+    for (uint8_t i = 0; i < VIAL_COMBO_ENTRIES; i++) {
+        vial_combo_entry_t entry;
+
+        // Vialからi番目のコンボエントリーを取得
+        dynamic_keymap_get_combo(i, &entry);
+
+        // 出力キーコードが未設定（KC_NO または 0）の場合はスキップ
+        if (entry.output == KC_NO || entry.output == 0) continue;
+
+        // 入力キーコード（1つ目と2つ目）を取得し、Tapキーコードに揃える
+        uint16_t in0 = tap_hold_get_tap_keycode(entry.input[0]);
+        uint16_t in1 = tap_hold_get_tap_keycode(entry.input[1]);
+
+        // 3つ目の入力キーが KC_NO / 0 であることを確認（「2キー同時押しコンボ」のみを対象とするため）
+        bool is_2key_combo = (entry.input[2] == KC_NO || entry.input[2] == 0);
+
+        // 押された2つのキーと一致するか判定（順不同）
+        bool match = ((in0 == tap1 && in1 == tap2) || (in0 == tap2 && in1 == tap1));
+
+        if (is_2key_combo && match) {
+            return entry.output; // 一致したコンボの出力キーコードを返す
+        }
+    }
+
+    return 0; // コンボ未登録
+}
+// =================================================================================
 void resolve_pending_normal_keys_if_no_mod_pending(void) {
     uint8_t i;
     for (i = 0; i < PENDING_TAP_CAPACITY; i++) {
@@ -317,6 +351,40 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
 
     // ------------------------------------------------------------------------------------------------------------------
     if (record->event.pressed) {
+
+        // === 【コンボ割り込み処理】 ===
+        // 既に押下/保留中のキーの中に、今回のキーとコンボになるペアがあるかチェック
+        for (i = 0; i < PENDING_TAP_CAPACITY; i++) {
+            if (i == slot || !pending_taps[i].is_active) continue;
+            if (!pending_taps[i].is_pending) continue;
+
+            uint16_t combo_code = get_combo_for_keys(pending_taps[i].keycode, keycode);
+            if (combo_code != 0) { // コンボ検出
+                // 先行キーの遅延タイマーをキャンセル
+                if (pending_taps[i].tapping_pending_token != 0) {
+                    cancel_deferred_exec(pending_taps[i].tapping_pending_token);
+                    pending_taps[i].tapping_pending_token = 0;
+                }
+                if (pending_taps[i].rolling_pending_token != 0) {
+                    cancel_deferred_exec(pending_taps[i].rolling_pending_token);
+                    pending_taps[i].rolling_pending_token = 0;
+                }
+
+                // 両方のキーのスロットを無効化（離した時の二重誤動作を防止）
+                pending_taps[i].is_active     = false;
+                pending_taps[i].is_pending    = false;
+                pending_taps[slot].is_active  = false;
+                pending_taps[slot].is_pending = false;
+
+                // コンボキーを出力
+                tap_code_print(combo_code);
+                keycode_last_tap = combo_code;
+                time_last_tap    = timer_read();
+
+                return false; // 通常の Mod-Tap 処理や QMK 標準処理をすべてスキップ
+            }
+        }
+
         if (is_mod_tap_key) {
             if (is_key_repeat) {
                 pending_taps[slot].tapping_pending_token = defer_exec(TAPPING_TERM * 3, delayed_key_tap_callback, (void*)(uintptr_t)pending_taps[slot].slot_id);
