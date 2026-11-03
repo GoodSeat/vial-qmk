@@ -432,3 +432,24 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
     return false;
 
 }
+
+#ifdef OLED_ENABLE
+// OLEDの描画処理を行う関数（QMKが定期的に自動呼び出しします）
+bool oled_task_user(void) {
+    // 1行目に静的なテキストを表示
+    oled_write_ln("Crisco 20%", false);
+
+    // 現在アクティブなレイヤー名を表示
+    switch (get_highest_layer(layer_state)) {
+        case 0:  oled_write_ln("Layer:0", false); break;
+        case 1:  oled_write_ln("Layer:1", false); break;
+        case 2:  oled_write_ln("Layer:2", false); break;
+        case 3:  oled_write_ln("Layer:3", false); break;
+        case 4:  oled_write_ln("Layer:4", false); break;
+        case 5:  oled_write_ln("Layer:5", false); break;
+        default: oled_write_ln("Layer:?", false); break;
+    }
+
+    return false;
+}
+#endif
