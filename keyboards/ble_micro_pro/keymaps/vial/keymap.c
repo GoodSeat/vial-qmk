@@ -137,6 +137,7 @@ typedef struct {
     uint8_t  krow;                       // キーの行
     uint8_t  kcol;                       // キーの列
     uint16_t keycode_registerd;          // register時のキーコード
+    uint16_t keycode_combo;              // comboとして登録されたキー
     uint16_t pressed_time;               // このキーが押された時刻
     uint16_t release_time;               // このキーが離された時刻
     deferred_token tapping_pending_token; // TAPPING_TERMの遅延トークン Mod-tapキー以外では常に0
@@ -156,6 +157,7 @@ void keyboard_post_init_user(void) {
         pending_taps[i].krow                  = 0;
         pending_taps[i].kcol                  = 0;
         pending_taps[i].keycode_registerd     = 0;
+        pending_taps[i].keycode_combo         = 0;
         pending_taps[i].pressed_time          = 0;
         pending_taps[i].release_time          = 0;
         pending_taps[i].tapping_pending_token = 0;
@@ -193,6 +195,7 @@ uint8_t add_pressed_key(uint16_t keycode, uint8_t row, uint8_t col, bool key_rep
             pending_taps[i].krow                  = row;
             pending_taps[i].kcol                  = col;
             pending_taps[i].keycode_registerd     = 0;
+            pending_taps[i].keycode_combo         = 0;
             pending_taps[i].pressed_time          = timer_read();
             pending_taps[i].release_time          = 0;
             pending_taps[i].tapping_pending_token = 0;
@@ -457,11 +460,23 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
     } else {
         slot = remove_pressed_key(row, col, &existYounger);
     }
+
     if (!is_mod_tap_key && slot >= PENDING_TAP_CAPACITY) return true; // スロットに未登録のキー
 
 #ifdef KEYMAP_INTROSPECTION_ENABLE // -----------------------------------------//
     xprintf(" <pressed_key_count: %u> slot:%u\r\n", pressed_key_count, slot);  //
 #endif // KEYMAP_INTROSPECTION_ENABLE -----------------------------------------//
+
+    // コンボキーのリリースを検知
+    if (slot < PENDING_TAP_CAPACITY && !(record->event.pressed) && pending_taps[slot].keycode_combo != 0) {
+#ifdef KEYMAP_INTROSPECTION_ENABLE // -------------------------------------------------//
+        xprintf(" ### COMBO RELEASED: %u ###\r\n", pending_taps[slot].keycode_combo);  //
+#endif // KEYMAP_INTROSPECTION_ENABLE -------------------------------------------------//
+        unregister_code_print(pending_taps[slot].keycode_combo);
+        pending_taps[slot].keycode_combo = 0;
+        pending_taps[slot].is_active     = false;
+        return false;
+    }
 
     if (slot >= PENDING_TAP_CAPACITY) {
 #ifdef KEYMAP_INTROSPECTION_ENABLE // ------------------------------------------------//
@@ -496,18 +511,16 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
                 }
 
                 // 両方のキーのスロットを無効化（離した時の二重誤動作を防止）
-                pending_taps[i].is_active     = false;
-                pending_taps[i].is_pending    = false;
-                pending_taps[slot].is_active  = false;
-                pending_taps[slot].is_pending = false;
+                pending_taps[i].is_active        = false;
+                pending_taps[i].is_pending       = false;
+                pending_taps[slot].is_pending    = false;
+                pending_taps[slot].keycode_combo = combo_code;
 
                 // コンボキーを出力
-                tap_code_print(combo_code);
-                keycode_last_tap = combo_code;
-                time_last_tap    = timer_read();
 #ifdef KEYMAP_INTROSPECTION_ENABLE // ---------------------------------------------------------------------//
                 xprintf(" ### %u, %u -> COMBO %u ###\r\n", pending_taps[i].keycode, keycode, combo_code);  //
 #endif // KEYMAP_INTROSPECTION_ENABLE ---------------------------------------------------------------------//
+                register_code_print(combo_code);
                 return false; // 通常の Mod-Tap 処理や QMK 標準処理をすべてスキップ
             }
         }
@@ -527,7 +540,7 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
             if (is_mod_tap_key) { // tapping term以上押されたmod-tapキーが離された時
                 if (pressed_key_count < 2) {
                     for (i = 0; i < PENDING_TAP_CAPACITY; i++) {
-                        if (i == slot || !pending_taps[i].is_active) continue;
+                        if (i == slot || !pending_taps[i].is_active || pending_taps[i].keycode_combo != 0) continue;
                         if (pending_taps[i].tapping_pending_token != 0                           // mod-tapキーで、
                          && pending_taps[i].pressed_time > pending_taps[slot].pressed_time       // このキーより後に押され、
                          && timer_elapsed(pending_taps[i].pressed_time) > ROLLING_TO_MOD_TIMEOUT // ROLLING_TO_MOD_TIMEOUT以上共存したキーはtap扱いとする
@@ -580,7 +593,7 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
 
             // 自分よりpressの古いmod-tapキー、あるいはROLLING_TO_MOD_TIMEOUT以内に離された保留中のmod-tapキーがあれば、それをMod扱いとする
             for (i = 0; i < PENDING_TAP_CAPACITY; ++i) {
-                if (!pending_taps[i].is_active || !pending_taps[i].is_pending) continue;
+                if (!pending_taps[i].is_active || !pending_taps[i].is_pending || pending_taps[i].keycode_combo != 0) continue;
                 if (pending_taps[i].tapping_pending_token == 0 && pending_taps[i].rolling_pending_token == 0) continue;
                 if (pending_taps[i].rolling_pending_token != 0 && pending_taps[i].release_time < pending_taps[slot].pressed_time) {
                     uint16_t kp = tap_hold_get_tap_keycode(to_current_layer_keycode_on_slot(i));
