@@ -647,4 +647,9 @@ bool oled_task_user(void) {
 
     return false;
 }
+
+oled_rotation_t oled_init_user(oled_rotation_t rotation) {
+    return OLED_ROTATION_90; // 向きが逆の場合は OLED_ROTATION_270 に変更してください
+}
+
 #endif
