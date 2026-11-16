@@ -642,10 +642,81 @@ bool pre_process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 #ifdef OLED_ENABLE
+
+#define LOG_LEN 21
+static char keylog_str[LOG_LEN + 1] = "                     "; // 空白で初期化
+
+// 基本キーコード(0x04〜0x38)を1文字に変換するテーブル
+static const char PROGMEM code_to_name[60] = {
+    ' ', ' ', ' ', ' ', 'a', 'b', 'c', 'd', 'e', 'f',
+    'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
+    'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+    '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+    'R', 'E', 'B', 'T', '_', '-', '=', '[', ']', '\\',
+    '#', ';', '\'', '`', ',', '.', '/', ' ', ' ', ' '
+};
+
+// キーが押されたときに呼ばれる関数
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (record->event.pressed) {
+        // Vial / QMKのMod-TapやLayer-Tapから基本キーコード部分を取り出す
+        if ((keycode >= QK_MOD_TAP && keycode <= QK_MOD_TAP_MAX) ||
+            (keycode >= QK_LAYER_TAP && keycode <= QK_LAYER_TAP_MAX)) {
+            keycode = keycode & 0xFF;
+        }
+
+        char name = ' ';
+        if (keycode < 60) {
+            name = pgm_read_byte(&code_to_name[keycode]);
+        }
+
+        // 1文字左へスクロールして末尾に新しい文字を入れる
+        memmove(keylog_str, keylog_str + 1, LOG_LEN - 1);
+        keylog_str[LOG_LEN - 1] = name;
+        keylog_str[LOG_LEN] = '\0';
+    }
+    return true;
+}
+
+// write given digit, with leading zero if digit < 10
+void oled_write_2digit(unsigned int digit) {
+    static char buf[6];
+    itoa(digit, buf, 10);
+    if (digit < 10) {
+        oled_write_char('0', false);
+    }
+    oled_write(buf, false);
+}
+
+void oled_write_uptime(void) {
+    static uint32_t uptime_s;
+    uptime_s = timer_read32() / 1000;
+    oled_write_P(PSTR("Uptime "), false);
+    // hour
+    oled_write_2digit((uptime_s / 3600) % 60);
+    oled_write_char(':', false);
+    // minutes
+    oled_write_2digit((uptime_s / 60) % 60);
+    oled_write_char(':', false);
+    // seconds
+    oled_write_2digit(uptime_s % 60);
+    oled_write_char('\n', false);
+}
+
+void oled_write_host_led_state(void) {
+    const led_t led_state = host_keyboard_led_state();
+    oled_write_P(PSTR("NL:"), false);
+    oled_write_P(led_state.num_lock ? PSTR("on") : PSTR("- "), false);
+    oled_write_P(PSTR(" CL:"), false);
+    oled_write_P(led_state.caps_lock ? PSTR("on") : PSTR("- "), false);
+    oled_write_P(PSTR(" SL:"), false);
+    oled_write_ln_P(led_state.scroll_lock ? PSTR("on") : PSTR("-"), false);
+}
+
 // OLEDの描画処理を行う関数（QMKが定期的に自動呼び出しします）
 bool oled_task_user(void) {
     // 1行目に静的なテキストを表示
-    oled_write_ln("Crisco 20%", false);
+    oled_write_P("Crisco - ", false);
 
     // 現在アクティブなレイヤー名を表示
     switch (get_highest_layer(layer_state)) {
@@ -658,11 +729,17 @@ bool oled_task_user(void) {
         default: oled_write_ln("Layer:?", false); break;
     }
 
+    oled_write_host_led_state();
+
+    oled_write_uptime();
+
+    oled_write(keylog_str, false);
+
     return false;
 }
 
-oled_rotation_t oled_init_user(oled_rotation_t rotation) {
-    return OLED_ROTATION_90; // 向きが逆の場合は OLED_ROTATION_270 に変更してください
-}
+//oled_rotation_t oled_init_user(oled_rotation_t rotation) {
+//    return OLED_ROTATION_90; // 向きが逆の場合は OLED_ROTATION_270 に変更してください
+//}
 
 #endif
