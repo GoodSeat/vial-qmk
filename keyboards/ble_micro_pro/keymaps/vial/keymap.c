@@ -675,7 +675,24 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         keylog_str[LOG_LEN - 1] = name;
         keylog_str[LOG_LEN] = '\0';
     }
+
+    // OLEDを強制更新する
+    oled_on();
+    oled_task_user();
+    oled_render();
+
     return true;
+}
+
+// レイヤーの状態が変化した（押した時・離した時両方）直後に呼ばれる関数
+layer_state_t layer_state_set_user(layer_state_t state) {
+    // ここで現在のレイヤー状態を反映して強制描画する
+    oled_on();
+    // get_highest_layer(layer_state) が最新値になるよう先に代入しておく
+    layer_state = state;
+    oled_task_user();
+    oled_render();
+    return state;
 }
 
 // write given digit, with leading zero if digit < 10
@@ -734,6 +751,8 @@ bool oled_task_user(void) {
     oled_write_uptime();
 
     oled_write(keylog_str, false);
+
+    // TAPPING_TERM
 
     return false;
 }

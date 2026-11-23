@@ -22,4 +22,3 @@
 
 #define RGBLIGHT_SPLIT
 #define RGBLED_NUM_DEFAULT 128
-#define OLED_TIMEOUT 0 // 0にすると自動消灯・描画停止しなくなります
